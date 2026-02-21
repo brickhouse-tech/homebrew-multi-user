@@ -36,6 +36,94 @@ This script fixes Homebrew permissions permanently by:
 - ✅ Teams sharing a development Mac
 - ✅ Anyone tired of Homebrew permission issues
 
+## Why Not Install Homebrew in $HOME?
+
+**TL;DR:** Installing Homebrew in your home directory (`~/homebrew`) makes installs **10-100x slower**.
+
+### The Performance Problem
+
+Homebrew provides pre-compiled binaries called **"bottles"** for popular packages. When you run `brew install nodejs`, Homebrew downloads a ready-to-use binary instead of compiling from source.
+
+**Bottles only work with standard install locations:**
+- `/opt/homebrew` (Apple Silicon)
+- `/usr/local` (Intel Mac)
+
+> **From Homebrew's official docs:**
+>
+> "This prefix is required for most bottles (binary packages) to be used. Many things will need to be built from source outside the default prefix."
+>
+> — [Homebrew Installation Docs](https://docs.brew.sh/Installation)
+
+**What this means in practice:**
+
+| Install Location | Install Method | Speed |
+|-----------------|---------------|-------|
+| `/opt/homebrew` (standard) | Pre-compiled bottles | ⚡ **Fast** (seconds) |
+| `~/homebrew` (home directory) | Compile from source | 🐌 **Slow** (minutes to hours) |
+
+**Real-world example:**
+```bash
+# Standard location (/opt/homebrew)
+brew install nodejs
+# Downloads 25MB binary, installs in 5 seconds ✅
+
+# Home directory (~/homebrew)
+brew install nodejs
+# Compiles from source, takes 15+ minutes 😱
+```
+
+### Why Bottles Don't Work Outside Standard Locations
+
+Bottles are pre-compiled for specific paths. From [Homebrew Bottles Docs](https://docs.brew.sh/Bottles):
+
+> "Bottles will not be used if the bottle's cellar is neither `:any` (it requires being installed to a specific Cellar path) nor equal to the current `HOMEBREW_CELLAR` (the required Cellar path does not match that of the current Homebrew installation)."
+
+**Translation:** Most bottles are hardcoded for `/opt/homebrew` or `/usr/local`. Installing elsewhere forces source compilation.
+
+### The Multi-User Trap
+
+This is why many people **mistakenly** install Homebrew in their home directory:
+
+1. ❌ Install to `/opt/homebrew` → hit permission errors with other users
+2. ❌ Give up and reinstall to `~/homebrew` → "fixes" permissions
+3. 😱 Everything now takes forever to install
+4. 🤔 Eventually Google "why is homebrew so slow"
+
+**The right solution:** Fix permissions on `/opt/homebrew` instead (this repo).
+
+### Performance Impact
+
+Compiling from source for a typical development setup:
+
+| Package | Bottle (seconds) | Source (minutes) |
+|---------|-----------------|------------------|
+| node | 5s | 15m |
+| python@3.12 | 8s | 25m |
+| postgresql | 10s | 45m |
+| gcc | 15s | **2+ hours** |
+
+**Installing 20 packages:**
+- Standard location: ~5 minutes
+- Home directory: **3+ hours** (or fails entirely if you hit compilation errors)
+
+### Additional Problems with Home Directory Install
+
+Beyond performance:
+- ❌ No bottles = hit every compilation dependency issue
+- ❌ Build failures (missing headers, compiler quirks)
+- ❌ Non-standard paths break some installers
+- ❌ Harder to get help (Homebrew maintainers assume standard prefix)
+- ❌ Still doesn't solve multi-user access (only YOU can use it)
+
+### The Right Approach
+
+✅ **Install Homebrew to the standard location** (`/opt/homebrew`)
+✅ **Fix permissions** (this repo) so multiple users can use it
+✅ **Get bottles** = fast installs
+✅ **Everyone's happy** 🎉
+
+This is exactly why this repo exists: to fix multi-user permissions **without** sacrificing performance.
+
 ## Quick Start
 
 ### 1. Run the Fix
