@@ -2,6 +2,8 @@
 
 **Fix Homebrew permission issues on multi-user macOS systems.**
 
+> **Security First:** Your automation users (OpenClaw, CI bots, service accounts) don't need root access. Neither does Homebrew. Use proper Unix permissions and least-privilege principles instead of `sudo`.
+
 ## The Problem
 
 Homebrew is designed for single-user installations. On multi-user Macs (shared workstations, families, Mac Minis, CI machines), you'll hit permission errors like:
@@ -31,10 +33,17 @@ This script fixes Homebrew permissions permanently by:
 
 ## Who This Is For
 
-- ✅ Multi-user Macs (families, shared workstations)
-- ✅ Mac Mini build/CI machines
-- ✅ Teams sharing a development Mac
-- ✅ Anyone tired of Homebrew permission issues
+### Multi-User Scenarios
+- ✅ **Families & shared workstations** - Multiple people using the same Mac
+- ✅ **Mac Mini build/CI machines** - Automation that shouldn't run as root
+- ✅ **Teams sharing a development Mac** - Engineers with their own accounts
+- ✅ **Service accounts & automation** - OpenClaw, cron jobs, CI runners that need Homebrew access without sudo
+
+### Security Use Cases
+- ✅ **Principle of least privilege** - Automation users don't need root
+- ✅ **Supply chain security** - Limit blast radius of compromised packages
+- ✅ **Compliance requirements** - Avoid running package managers as root
+- ✅ **Audit trails** - Know which user installed what (not just "root did it")
 
 ## Why Not Install Homebrew in $HOME?
 
@@ -307,13 +316,41 @@ During `brew upgrade`, Homebrew:
 
 ## Why Not Just `sudo brew`?
 
-**Don't do it.** Running `brew` with sudo causes:
-- ❌ Files owned by root (breaks future non-sudo runs)
-- ❌ Security risk (Homebrew scripts run as root)
-- ❌ Homebrew complains and warns against it
-- ❌ Doesn't solve the underlying problem
+**Don't do it.** Running `brew` with sudo violates the principle of least privilege and creates security risks.
 
-**Proper fix:** This script.
+### Security Issues
+
+**Homebrew runs arbitrary code:**
+- Formula files are Ruby scripts that execute during installation
+- Post-install scripts run shell commands
+- `sudo brew install` = **arbitrary code execution as root**
+
+**Real attack scenario:**
+1. Compromised formula or tap (supply chain attack)
+2. You run `sudo brew install compromised-package`
+3. Malicious script runs with **root privileges**
+4. Full system compromise
+
+**Least privilege principle:**
+> "Every program and every privileged user of the system should operate using the least amount of privilege necessary to complete the job."
+
+Homebrew doesn't need root. Your automation users (OpenClaw, CI bots, cron jobs) don't need root. Use Unix groups instead.
+
+### Practical Problems
+
+Beyond security, `sudo brew` causes:
+- ❌ Files owned by root (breaks future non-sudo runs)
+- ❌ Homebrew complains and warns against it
+- ❌ Doesn't solve multi-user access (only root can use it)
+- ❌ Breaks automation (service accounts can't run `sudo`)
+
+### The Right Approach
+
+✅ **Proper fix:** Group-based permissions (this script)
+- ✅ No root required for package installs
+- ✅ Multiple users can install/upgrade
+- ✅ Service accounts work without sudo
+- ✅ Security: Homebrew runs as your user, not root
 
 ## Uninstall
 
